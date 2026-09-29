@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>AR Wifi Analyzer – Support</title>
+<meta name="description" content="Help and contact for AR Wifi Analyzer, the app that maps your Wi-Fi coverage in 3D with LiDAR.">
+<meta name="color-scheme" content="dark">
+<style>
+  :root {
+    --bg: #0c1122;
+    --panel: #19213a;
+    --line: #2a3452;
+    --text: #eef2fa;
+    --muted: #a9b4cc;
+    --blue: #5bb8ff;
+    --strong: #5ad26b;
+    --fair: #ffb932;
+    --weak: #f7614a;
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  *, *::before, *::after { box-sizing: inherit; }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  body {
+    margin: 0;
+    background:
+      radial-gradient(60rem 40rem at 90% -10%, #1b3566 0%, transparent 60%),
+      radial-gradient(50rem 40rem at -10% 110%, #123a33 0%, transparent 60%),
+      var(--bg);
+    background-attachment: fixed;
+    color: var(--text);
+    font: 17px/1.55 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  main { max-width: 44rem; margin: 0 auto; padding: 4rem 1.5rem 3rem; }
+
+  /* hero */
+  .signal { display: block; width: 7.5rem; height: auto; margin-bottom: 2rem; }
+  h1 {
+    font: 700 clamp(2.2rem, 7vw, 3.1rem)/1.08 -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
+    letter-spacing: -0.02em;
+    margin: 0 0 1rem;
+  }
+  .lede { color: var(--muted); font-size: 1.15rem; margin: 0 0 2rem; max-width: 34rem; }
+  .button {
+    display: inline-block;
+    background: var(--blue);
+    color: #06213a;
+    font-weight: 600;
+    text-decoration: none;
+    padding: .8rem 1.6rem;
+    border-radius: 999px;
+  }
+  .button:hover { background: #7cc7ff; }
+  a:focus-visible, summary:focus-visible { outline: 3px solid var(--blue); outline-offset: 3px; border-radius: 6px; }
+
+  /* sections */
+  section { margin-top: 4rem; }
+  h2 { font-size: 1.5rem; line-height: 1.2; letter-spacing: -0.01em; margin: 0 0 1rem; }
+  p { margin: 0 0 1rem; }
+  a { color: var(--blue); }
+
+  /* coverage legend: the app's own language */
+  .bar { display: flex; height: .6rem; border-radius: 999px; overflow: hidden; gap: 2px; margin: 1.25rem 0 1.5rem; }
+  .bar span:nth-child(1) { flex: 49; background: var(--strong); }
+  .bar span:nth-child(2) { flex: 36; background: var(--fair); }
+  .bar span:nth-child(3) { flex: 15; background: var(--weak); }
+  .legend { list-style: none; margin: 0; padding: 0; }
+  .legend li { display: grid; grid-template-columns: .8rem 1fr; gap: .9rem; padding: .7rem 0; border-top: 1px solid var(--line); }
+  .legend li:first-child { border-top: 0; }
+  .dot { width: .8rem; height: .8rem; border-radius: 50%; margin-top: .4rem; }
+  .legend b { display: block; }
+  .legend small { color: var(--muted); font-size: .95rem; }
+
+  ol.tips { padding-left: 1.3rem; margin: 0; }
+  ol.tips li { padding-left: .3rem; margin-bottom: .75rem; }
+  ol.tips li::marker { color: var(--blue); font-weight: 600; }
+
+  /* FAQ */
+  details { border-top: 1px solid var(--line); }
+  details:last-of-type { border-bottom: 1px solid var(--line); }
+  summary {
+    cursor: pointer;
+    list-style: none;
+    padding: 1.1rem 2rem 1.1rem 0;
+    font-weight: 600;
+    position: relative;
+  }
+  summary::-webkit-details-marker { display: none; }
+  summary::after {
+    content: "+";
+    position: absolute; right: .25rem; top: .95rem;
+    font-size: 1.4rem; font-weight: 400; color: var(--muted);
+    transition: transform .2s ease;
+  }
+  details[open] summary::after { transform: rotate(45deg); }
+  details p { color: var(--muted); padding-right: 2rem; }
+
+  .contact {
+    background: var(--panel);
+    border: 1px solid var(--line);
+    border-radius: 1.25rem;
+    padding: 1.75rem;
+  }
+  .contact p:last-child { margin-bottom: 0; }
+
+  footer { color: var(--muted); font-size: .9rem; margin-top: 4rem; }
+  footer a { color: var(--muted); }
+
+  @media (prefers-reduced-motion: reduce) { summary::after { transition: none; } }
+</style>
+</head>
+<body>
+<main>
+
+  <svg class="signal" viewBox="0 0 120 100" aria-hidden="true">
+    <path d="M10 42 a70 70 0 0 1 100 0" fill="none" stroke="#f7614a" stroke-width="10" stroke-linecap="round"/>
+    <path d="M26 58 a46 46 0 0 1 68 0" fill="none" stroke="#ffb932" stroke-width="10" stroke-linecap="round"/>
+    <path d="M42 74 a22 22 0 0 1 36 0" fill="none" stroke="#5ad26b" stroke-width="10" stroke-linecap="round"/>
+    <circle cx="60" cy="90" r="7" fill="#5ad26b"/>
+  </svg>
+
+  <h1>AR Wifi Analyzer support</h1>
+  <p class="lede">Help with scanning your home, reading your coverage map, and getting in touch if something doesn't work.</p>
+  <a class="button" href="mailto:support@example.com?subject=AR%20Wifi%20Analyzer%20support">Email support</a>
+
+  <section aria-labelledby="req">
+    <h2 id="req">What you need</h2>
+    <p>AR Wifi Analyzer uses the LiDAR scanner to build a 3D model of your rooms, so it needs an iPhone or iPad that has one. That's iPhone 12 Pro and later Pro models, and iPad Pro from 2020 onward.</p>
+    <p>Your device must be connected to the Wi‑Fi network you want to measure.</p>
+  </section>
+
+  <section aria-labelledby="colors">
+    <h2 id="colors">What the colors mean</h2>
+    <p>While you walk, the app keeps measuring how quickly and reliably your router answers. Each spot is then colored on the walls and floor:</p>
+    <div class="bar" aria-hidden="true"><span></span><span></span><span></span></div>
+    <ul class="legend">
+      <li><span class="dot" style="background:var(--strong)"></span><div><b>Strong</b><small>The router answers fast and without loss. Good for video calls and streaming.</small></div></li>
+      <li><span class="dot" style="background:var(--fair)"></span><div><b>Fair</b><small>Works, but not reliable for video.</small></div></li>
+      <li><span class="dot" style="background:var(--weak)"></span><div><b>Weak</b><small>Slow or dropping. Calls will struggle here.</small></div></li>
+    </ul>
+  </section>
+
+  <section aria-labelledby="tips">
+    <h2 id="tips">Getting a good scan</h2>
+    <ol class="tips">
+      <li>Start in a well‑lit room and hold the device at chest height with the camera facing forward.</li>
+      <li>Walk slowly and steadily. Pan across walls and into corners so the scanner can see them.</li>
+      <li>Cover every room you care about, including the places where Wi‑Fi usually drops.</li>
+      <li>Scan one floor at a time and give each scan a clear name, like "Ground floor".</li>
+    </ol>
+  </section>
+
+  <section aria-labelledby="faq">
+    <h2 id="faq">Questions</h2>
+
+    <details>
+      <summary>Does the app measure my internet speed?</summary>
+      <p>No. It measures the connection between your device and your router – how fast it answers and how reliable the link is. That's what decides whether a room has good Wi‑Fi. A slow internet plan will not show up as weak coverage.</p>
+    </details>
+
+    <details>
+      <summary>Why does the app need the camera?</summary>
+      <p>The camera and LiDAR scanner are used to build the 3D model of your rooms and place measurements where you stand. Nothing is recorded or saved as video.</p>
+    </details>
+
+    <details>
+      <summary>Live AR walkthrough doesn't show my coverage</summary>
+      <p>Go back to the spot where you started the original scan and look around slowly. Once the app recognises the room, the saved coverage appears on the real walls. Good lighting helps, and moved furniture can make recognition slower.</p>
+    </details>
+
+    <details>
+      <summary>The 3D model has holes or missing walls</summary>
+      <p>Areas the scanner didn't see clearly are left out. Walk closer to those walls and pan slowly, or start a new scan. Mirrors, windows and very dark surfaces are hard for LiDAR to read.</p>
+    </details>
+
+    <details>
+      <summary>Where is my data stored?</summary>
+      <p>Everything stays on your device. Scans, 3D geometry and measurements are saved in the app's own storage and are never uploaded. Deleting the app deletes all scans.</p>
+    </details>
+
+    <details>
+      <summary>How do I delete a scan?</summary>
+      <p>Open the scan, tap the ••• button in the top corner and choose delete.</p>
+    </details>
+  </section>
+
+  <section aria-labelledby="contact">
+    <h2 id="contact">Still need help?</h2>
+    <div class="contact">
+      <p>Write to <a href="mailto:support@example.com">support@example.com</a>. It helps if you include your device model, iOS version, and what you were doing when the problem happened. A screenshot is always welcome.</p>
+      <p>I usually reply within a couple of days.</p>
+    </div>
+  </section>
+
+  <footer>
+    <p>© 2026 Your Name · <a href="privacy.html">Privacy policy</a></p>
+  </footer>
+
+</main>
+</body>
+</html>
