@@ -2,11 +2,18 @@ import SwiftUI
 
 @main
 struct KittyEscapeApp: App {
-    @StateObject private var progress = PlayerProgress()
+    @StateObject private var progress: PlayerProgress
+    @StateObject private var store: Store
+
+    init() {
+        let progress = PlayerProgress()
+        _progress = StateObject(wrappedValue: progress)
+        _store = StateObject(wrappedValue: Store(progress: progress))
+    }
 
     var body: some Scene {
         WindowGroup {
-            RootView(progress: progress)
+            RootView(progress: progress, store: store)
                 .preferredColorScheme(.light)
                 .statusBarHidden()
         }
@@ -15,6 +22,7 @@ struct KittyEscapeApp: App {
 
 struct RootView: View {
     @ObservedObject var progress: PlayerProgress
+    @ObservedObject var store: Store
     @State private var isPlaying = false
 
     var body: some View {
@@ -23,10 +31,11 @@ struct RootView: View {
                 GameView(progress: progress) { isPlaying = false }
                     .transition(.opacity)
             } else {
-                HomeView(progress: progress) { isPlaying = true }
+                HomeView(progress: progress, store: store) { isPlaying = true }
                     .transition(.opacity)
             }
         }
         .animation(.easeInOut(duration: 0.25), value: isPlaying)
+        .onAppear { SoundManager.shared.startMusic() }
     }
 }

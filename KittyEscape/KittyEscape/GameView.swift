@@ -25,26 +25,46 @@ struct GameView: View {
             .padding(.horizontal, 20)
             .padding(.vertical, 12)
 
-            switch session.phase {
-            case .playing:
-                EmptyView()
-            case let .won(stars, reward):
-                ResultCard(title: "Purr-fect!", subtitle: "+\(reward) coins", stars: stars) {
-                    Button("Next level") { session.nextLevel() }
-                        .buttonStyle(ChunkyButtonStyle(color: Palette.play))
-                }
-            case .lost:
-                ResultCard(title: "Out of lives", subtitle: "So close! Try again?", stars: nil) {
-                    Button("Continue  (\(GameSession.reviveCost) 🪙)") { _ = session.revive() }
-                        .buttonStyle(ChunkyButtonStyle(color: Palette.hintButton))
-                        .disabled(progress.coins < GameSession.reviveCost)
-                        .opacity(progress.coins < GameSession.reviveCost ? 0.5 : 1)
-                    Button("Try again") { session.restart() }
-                        .buttonStyle(ChunkyButtonStyle(color: Palette.play))
-                }
-            }
+            overlay
         }
         .animation(.spring(response: 0.35, dampingFraction: 0.75), value: session.phase)
+    }
+
+    @ViewBuilder
+    private var overlay: some View {
+        switch session.phase {
+        case .playing:
+            EmptyView()
+        case let .won(stars, reward, newBreed):
+            ResultCard(title: session.isHard ? "Hard level beaten!" : "Purr-fect!",
+                       subtitle: "+\(reward) coins",
+                       stars: stars) {
+                if let newBreed {
+                    VStack(spacing: 4) {
+                        Image(uiImage: CatArt.image(for: newBreed, size: 96))
+                        Text("New cat unlocked: \(newBreed.name)!")
+                            .font(.system(size: 17, weight: .heavy, design: .rounded))
+                            .foregroundStyle(Palette.ink)
+                    }
+                }
+                Button("Next level") { session.nextLevel() }
+                    .buttonStyle(ChunkyButtonStyle(color: Palette.play))
+            }
+            .onAppear { SoundManager.shared.play(newBreed == nil ? .coin : .unlock) }
+        case .lost:
+            ResultCard(title: "Out of lives", subtitle: "So close! Keep going?", stars: nil) {
+                if Ads.shared.isRewardedReady {
+                    Button("Watch ad  +1 ❤️") { session.reviveWithAd() }
+                        .buttonStyle(ChunkyButtonStyle(color: Palette.heartColor))
+                }
+                Button("Continue  \(GameSession.reviveCost) 🪙") { _ = session.revive() }
+                    .buttonStyle(ChunkyButtonStyle(color: Palette.hintButton))
+                    .disabled(progress.coins < GameSession.reviveCost)
+                    .opacity(progress.coins < GameSession.reviveCost ? 0.5 : 1)
+                Button("Try again") { session.restart() }
+                    .buttonStyle(ChunkyButtonStyle(color: Palette.play))
+            }
+        }
     }
 
     private var topBar: some View {
@@ -58,9 +78,19 @@ struct GameView: View {
                 Spacer()
 
                 VStack(spacing: 4) {
-                    Text("Level \(session.level)")
-                        .font(.system(size: 26, weight: .heavy, design: .rounded))
-                        .foregroundStyle(Palette.ink)
+                    HStack(spacing: 6) {
+                        Text("Level \(session.level)")
+                            .font(.system(size: 26, weight: .heavy, design: .rounded))
+                            .foregroundStyle(Palette.ink)
+                        if session.isHard {
+                            Text("HARD")
+                                .font(.system(size: 13, weight: .black, design: .rounded))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 3)
+                                .background(Capsule().fill(Palette.heartColor))
+                        }
+                    }
                     HStack(spacing: 4) {
                         ForEach(0..<GameSession.maxHearts, id: \.self) { index in
                             Image(systemName: index < session.hearts ? "heart.fill" : "heart")
@@ -129,7 +159,8 @@ private struct ResultCard<Actions: View>: View {
                     }
                 }
                 Text(title)
-                    .font(.system(size: 36, weight: .black, design: .rounded))
+                    .font(.system(size: 34, weight: .black, design: .rounded))
+                    .multilineTextAlignment(.center)
                     .foregroundStyle(Palette.ink)
                 Text(subtitle)
                     .font(.system(size: 20, weight: .bold, design: .rounded))
@@ -138,7 +169,6 @@ private struct ResultCard<Actions: View>: View {
                     actions()
                 }
                 .font(.system(size: 22, weight: .heavy, design: .rounded))
-                .controlSize(.large)
             }
             .padding(28)
             .frame(maxWidth: 340)

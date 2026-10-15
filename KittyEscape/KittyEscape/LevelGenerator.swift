@@ -20,17 +20,25 @@ struct LevelSpec {
     let rows: Int
     let catCount: Int
     let colorCount: Int
+    let sleepyChance: Double
+    let isHard: Bool
 }
 
 enum LevelGenerator {
+    static let firstSleepyLevel = 6
+
     static func spec(for level: Int) -> LevelSpec {
         let level = max(1, level)
+        let isHard = level >= 10 && level % 5 == 0
         let columns = min(3 + (level + 1) / 3, 8)
         let rows = min(columns + 1 + level / 8, 11)
-        let fill = min(0.4 + 0.025 * Double(level), 0.8)
+        var fill = min(0.4 + 0.025 * Double(level), 0.8)
+        if isHard { fill = min(fill + 0.1, 0.9) }
         let catCount = max(3, Int((Double(columns * rows) * fill).rounded()))
-        let colorCount = min(2 + level / 4, Palette.catColorCount)
-        return LevelSpec(columns: columns, rows: rows, catCount: catCount, colorCount: colorCount)
+        let colorCount = min(2 + level / 4, 5)
+        let sleepyChance = level >= firstSleepyLevel ? min(0.08 + 0.01 * Double(level - firstSleepyLevel), 0.25) : 0
+        return LevelSpec(columns: columns, rows: rows, catCount: catCount, colorCount: colorCount,
+                         sleepyChance: sleepyChance, isHard: isHard)
     }
 
     /// Each new cat is only given a direction whose path is clear of the cats
@@ -56,7 +64,10 @@ enum LevelGenerator {
                 continue
             }
             let colorIndex = Int.random(in: 0..<spec.colorCount, using: &rng)
-            board.add(Cat(id: nextID, position: cell, direction: direction, colorIndex: colorIndex))
+            // The level that introduces sleepy cats always has at least one.
+            let isAsleep = Double.random(in: 0..<1, using: &rng) < spec.sleepyChance
+                || (level == firstSleepyLevel && nextID == 0)
+            board.add(Cat(id: nextID, position: cell, direction: direction, colorIndex: colorIndex, isAsleep: isAsleep))
             nextID += 1
         }
         return board

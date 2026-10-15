@@ -18,16 +18,23 @@ final class GameScene: SKScene {
 
     private let boardNode = SKNode()
     private var catNodes: [Int: SKSpriteNode] = [:]
-    private var textures: [Int: SKTexture] = [:]
+    private var sleepLabels: [Int: SKLabelNode] = [:]
+    private var textures: [String: SKTexture] = [:]
     private var cellSize: CGFloat = 44
     private var origin = CGPoint.zero
+    private var boardTop: CGFloat = 0
     private var isReady = false
+    private var combo = 0
+    private var lastEscapeTime: TimeInterval = 0
 
     // Room left for the SwiftUI HUD above and below the board.
-    private static let topInset: CGFloat = 170
+    private static let topInset: CGFloat = 200
     private static let bottomInset: CGFloat = 130
     private static let sideInset: CGFloat = 16
+    private static let comboWindow: TimeInterval = 0.7
     private static let hintName = "hint"
+    private static let pointerName = "pointer"
+    private static let bannerName = "banner"
 
     init(session: GameSession) {
         self.session = session
@@ -56,11 +63,13 @@ final class GameScene: SKScene {
     // MARK: - Board
 
     func rebuild(animated: Bool) {
-        guard isReady, view != nil else { return }
+        guard isReady else { return }
         boardNode.removeAllActions()
         boardNode.removeAllChildren()
         boardNode.position = .zero
         catNodes.removeAll()
+        sleepLabels.removeAll()
+        combo = 0
 
         let board = session.board
         let availableWidth = size.width - Self.sideInset * 2
@@ -72,11 +81,12 @@ final class GameScene: SKScene {
         let center = CGPoint(x: size.width / 2, y: Self.bottomInset + availableHeight / 2)
         origin = CGPoint(x: center.x - boardSize.width / 2 + cellSize / 2,
                          y: center.y - boardSize.height / 2 + cellSize / 2)
+        boardTop = center.y + boardSize.height / 2
 
         let backing = SKShapeNode(rectOf: CGSize(width: boardSize.width + 16, height: boardSize.height + 16),
                                   cornerRadius: 24)
         backing.position = center
-        backing.fillColor = Palette.boardBacking
+        backing.fillColor = session.isHard ? Palette.heart.withAlphaComponent(0.35) : Palette.boardBacking
         backing.strokeColor = .clear
         backing.zPosition = -2
         boardNode.addChild(backing)
@@ -97,6 +107,7 @@ final class GameScene: SKScene {
             let node = makeCatNode(cat)
             boardNode.addChild(node)
             catNodes[cat.id] = node
+            if cat.isAsleep { addSleepLabel(for: cat) }
             if animated {
                 node.setScale(0)
                 let delay = 0.02 * Double(cat.position.col + board.rows - cat.position.row)
@@ -107,22 +118,41 @@ final class GameScene: SKScene {
                 ]))
             }
         }
+
+        showIntro()
     }
 
     private func makeCatNode(_ cat: Cat) -> SKSpriteNode {
-        let node = SKSpriteNode(texture: texture(forColor: cat.colorIndex))
+        let node = SKSpriteNode(texture: texture(for: cat))
         node.size = CGSize(width: cellSize, height: cellSize)
         node.position = point(for: cat.position)
         node.zRotation = cat.direction.rotation
         return node
     }
 
-    private func texture(forColor index: Int) -> SKTexture? {
-        if let cached = textures[index] { return cached }
-        guard let view else { return nil }
-        let texture = view.texture(from: CatArt.makeNode(color: Palette.catColor(index), size: 128))
-        textures[index] = texture
+    private func texture(for cat: Cat) -> SKTexture {
+        let breed = session.breed(for: cat)
+        let key = "\(breed.id)-\(cat.isAsleep)"
+        if let cached = textures[key] { return cached }
+        let texture = SKTexture(image: CatArt.image(for: breed, asleep: cat.isAsleep))
+        textures[key] = texture
         return texture
+    }
+
+    private func addSleepLabel(for cat: Cat) {
+        let label = SKLabelNode(text: "Zz")
+        label.fontName = "AvenirNext-Heavy"
+        label.fontSize = cellSize * 0.3
+        label.fontColor = Palette.inkUI
+        label.position = CGPoint(x: point(for: cat.position).x + cellSize * 0.3,
+                                 y: point(for: cat.position).y + cellSize * 0.25)
+        label.zPosition = 6
+        boardNode.addChild(label)
+        sleepLabels[cat.id] = label
+        label.run(.repeatForever(.sequence([
+            .group([.moveBy(x: 0, y: 5, duration: 0.8), .fadeAlpha(to: 0.4, duration: 0.8)]),
+            .group([.moveBy(x: 0, y: -5, duration: 0.8), .fadeAlpha(to: 1, duration: 0.8)]),
+        ])))
     }
 
     private func point(for gridPoint: GridPoint) -> CGPoint {
@@ -135,6 +165,58 @@ final class GameScene: SKScene {
                   row: Int(((location.y - origin.y) / cellSize).rounded()))
     }
 
+    // MARK: - Tutorial and banners
+
+    private func showIntro() {
+        if session.level == 1 {
+            showBanner("Tap a cat to let it run!", duration: nil)
+            updatePointer()
+        } else if session.isHard {
+            showBanner("HARD LEVEL · 2× coins", color: Palette.heart)
+        } else if session.level == LevelGenerator.firstSleepyLevel {
+            showBanner("Sleepy cats need a tap to wake up!")
+        }
+    }
+
+    /// On level 1 a finger points at a cat that can escape.
+    private func updatePointer() {
+        boardNode.childNode(withName: Self.pointerName)?.removeFromParent()
+        guard session.level == 1, session.phase == .playing,
+              let target = session.board.removableCats.last,
+              let node = catNodes[target.id] else { return }
+
+        let pointer = SKLabelNode(text: "👆")
+        pointer.name = Self.pointerName
+        pointer.fontSize = cellSize * 0.7
+        pointer.verticalAlignmentMode = .top
+        pointer.position = CGPoint(x: node.position.x + cellSize * 0.15, y: node.position.y - cellSize * 0.15)
+        pointer.zPosition = 40
+        boardNode.addChild(pointer)
+        pointer.run(.repeatForever(.sequence([
+            .moveBy(x: 0, y: -10, duration: 0.4),
+            .moveBy(x: 0, y: 10, duration: 0.4),
+        ])))
+    }
+
+    private func showBanner(_ text: String, color: UIColor = Palette.inkUI, duration: TimeInterval? = 2.5) {
+        boardNode.childNode(withName: Self.bannerName)?.removeFromParent()
+        let label = SKLabelNode(text: text)
+        label.name = Self.bannerName
+        label.fontName = "AvenirNext-Heavy"
+        label.fontSize = 22
+        label.fontColor = color
+        label.verticalAlignmentMode = .center
+        label.position = CGPoint(x: size.width / 2, y: boardTop + 26)
+        label.zPosition = 30
+        label.setScale(0.6)
+        boardNode.addChild(label)
+        var actions: [SKAction] = [.scale(to: 1, duration: 0.15)]
+        if let duration {
+            actions += [.wait(forDuration: duration), .fadeOut(withDuration: 0.3), .removeFromParent()]
+        }
+        label.run(.sequence(actions))
+    }
+
     // MARK: - Input
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
@@ -144,6 +226,8 @@ final class GameScene: SKScene {
             animateEscape(cat)
         case .blocked(let cat, let blocker):
             animateBump(cat, blocker: blocker)
+        case .woke(let cat):
+            animateWake(cat)
         case .empty:
             break
         }
@@ -170,11 +254,22 @@ final class GameScene: SKScene {
             .removeFromParent(),
         ]))
 
-        spawnPuff(at: node.position, color: Palette.catColor(cat.colorIndex))
-        spawnHeart(at: node.position)
-        Haptics.tap()
+        let now = CACurrentMediaTime()
+        combo = now - lastEscapeTime < Self.comboWindow ? combo + 1 : 1
+        lastEscapeTime = now
 
-        if case .won = session.phase { celebrate() }
+        SoundManager.shared.play(.pop, pitch: 1 + Float(min(combo - 1, 8)) * 0.07)
+        if Int.random(in: 0..<3) == 0 { SoundManager.shared.meow() }
+        Haptics.tap()
+        spawnPuff(at: node.position, color: session.breed(for: cat).color)
+        spawnHeart(at: node.position)
+        if combo >= 3 { spawnText("Combo ×\(combo)!", at: node.position) }
+
+        if session.level == 1 { updatePointer() }
+        if case .won = session.phase {
+            boardNode.childNode(withName: Self.bannerName)?.removeFromParent()
+            celebrate()
+        }
     }
 
     private func animateBump(_ cat: Cat, blocker: Cat) {
@@ -207,7 +302,23 @@ final class GameScene: SKScene {
         boardNode.removeAction(forKey: "shake")
         boardNode.position = .zero
         boardNode.run(shake(amplitude: 5, then: .zero), withKey: "shake")
+        SoundManager.shared.play(.bump)
         Haptics.error()
+
+        if session.phase == .playing && session.level <= 2 {
+            showBanner("Oops! Another cat is in the way.", color: Palette.heart)
+        }
+    }
+
+    private func animateWake(_ cat: Cat) {
+        guard let node = catNodes[cat.id] else { return }
+        node.texture = texture(for: cat)
+        sleepLabels.removeValue(forKey: cat.id)?.removeFromParent()
+        node.removeAction(forKey: "wake")
+        node.setScale(1)
+        node.run(.sequence([.scale(to: 1.25, duration: 0.08), .scale(to: 1, duration: 0.12)]), withKey: "wake")
+        SoundManager.shared.play(.wake)
+        Haptics.tap()
     }
 
     private func shake(amplitude: CGFloat, then home: CGPoint) -> SKAction {
@@ -236,6 +347,7 @@ final class GameScene: SKScene {
         let pulse = SKAction.sequence([.scale(to: 1.15, duration: 0.3), .scale(to: 0.95, duration: 0.3)])
         ring.run(.sequence([.repeat(pulse, count: 4), .fadeOut(withDuration: 0.2), .removeFromParent()]))
         node.run(.sequence([.repeat(pulse, count: 4), .scale(to: 1, duration: 0.1)]), withKey: "hint")
+        SoundManager.shared.play(.wake, pitch: 1.3)
     }
 
     private func spawnPuff(at position: CGPoint, color: UIColor) {
@@ -275,8 +387,26 @@ final class GameScene: SKScene {
         ]))
     }
 
+    private func spawnText(_ text: String, at position: CGPoint) {
+        let label = SKLabelNode(text: text)
+        label.fontName = "AvenirNext-Heavy"
+        label.fontSize = 24
+        label.fontColor = Palette.hint.darker(0.15)
+        label.verticalAlignmentMode = .center
+        label.position = CGPoint(x: min(max(position.x, 90), size.width - 90), y: position.y + cellSize * 0.6)
+        label.zPosition = 20
+        label.setScale(0.5)
+        boardNode.addChild(label)
+        label.run(.sequence([
+            .scale(to: 1.1, duration: 0.12),
+            .group([.moveBy(x: 0, y: 30, duration: 0.6), .fadeOut(withDuration: 0.6)]),
+            .removeFromParent(),
+        ]))
+    }
+
     private func celebrate() {
         Haptics.success()
+        SoundManager.shared.play(.win)
         for i in 0..<60 {
             let piece = SKShapeNode(rectOf: CGSize(width: 8, height: 14), cornerRadius: 2)
             piece.fillColor = Palette.confetti[i % Palette.confetti.count]

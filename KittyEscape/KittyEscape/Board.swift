@@ -35,12 +35,15 @@ struct Cat: Identifiable, Hashable {
     let position: GridPoint
     let direction: Direction
     let colorIndex: Int
+    var isAsleep = false
 }
 
 enum TapOutcome {
     case escaped(Cat)
     /// The tapped cat and the first cat standing in its way.
     case blocked(Cat, Cat)
+    /// A sleeping cat was tapped and is now awake (no penalty).
+    case woke(Cat)
     case empty
 }
 
@@ -80,7 +83,7 @@ struct Board {
     func firstCat(from point: GridPoint, toward direction: Direction) -> Cat? {
         var next = point.moved(direction)
         while contains(next) {
-            if let cat = cat(at: next) { return cat }
+            if let cat = self.cat(at: next) { return cat }
             next = next.moved(direction)
         }
         return nil
@@ -95,8 +98,13 @@ struct Board {
     }
 
     mutating func tap(_ point: GridPoint) -> TapOutcome {
-        guard let cat = cat(at: point) else { return .empty }
-        if let blocker = blocker(of: cat) { return .blocked(cat, blocker) }
+        guard var cat = self.cat(at: point) else { return .empty }
+        if cat.isAsleep {
+            cat.isAsleep = false
+            cats[cat.id] = cat
+            return .woke(cat)
+        }
+        if let blocker = self.blocker(of: cat) { return .blocked(cat, blocker) }
         remove(cat.id)
         return .escaped(cat)
     }

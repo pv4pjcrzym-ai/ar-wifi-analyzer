@@ -1,27 +1,43 @@
 import SwiftUI
 
 struct HomeView: View {
+    private enum Sheet: String, Identifiable {
+        case daily, collection, shop, settings
+        var id: String { rawValue }
+    }
+
     @ObservedObject var progress: PlayerProgress
+    @ObservedObject var store: Store
     let onPlay: () -> Void
-    @State private var wiggle = false
+
+    @State private var sheet: Sheet?
+    @State private var bounce = false
 
     var body: some View {
         ZStack {
             Palette.backgroundColor.ignoresSafeArea()
 
-            VStack(spacing: 24) {
+            VStack(spacing: 20) {
                 HStack {
+                    Button { sheet = .settings } label: {
+                        Image(systemName: "gearshape.fill")
+                    }
+                    .buttonStyle(RoundIconButtonStyle())
+
                     Spacer()
-                    CoinPill(coins: progress.coins)
+
+                    Button { sheet = .shop } label: {
+                        CoinPill(coins: progress.coins, showsPlus: true)
+                    }
+                    .buttonStyle(PressableStyle())
                 }
 
                 Spacer()
 
-                Text("🐈")
-                    .font(.system(size: 120))
-                    .rotationEffect(.degrees(wiggle ? 8 : -8))
-                    .animation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true), value: wiggle)
-                    .onAppear { wiggle = true }
+                Image(uiImage: CatArt.image(for: progress.favoriteBreed, size: 220))
+                    .offset(y: bounce ? -14 : 0)
+                    .animation(.easeInOut(duration: 0.8).repeatForever(autoreverses: true), value: bounce)
+                    .onTapGesture { SoundManager.shared.meow() }
 
                 Text("Kitty Escape!")
                     .font(.system(size: 46, weight: .black, design: .rounded))
@@ -33,6 +49,13 @@ struct HomeView: View {
                     .foregroundStyle(Palette.ink.opacity(0.7))
 
                 Spacer()
+
+                HStack(spacing: 12) {
+                    MenuTile(icon: "gift.fill", title: "Daily", showsBadge: progress.canClaimDaily) { sheet = .daily }
+                    MenuTile(icon: "pawprint.fill",
+                             title: "Cats \(progress.unlockedBreedCount)/\(CatBreed.all.count)") { sheet = .collection }
+                    MenuTile(icon: "cart.fill", title: "Shop") { sheet = .shop }
+                }
 
                 Button(action: onPlay) {
                     VStack(spacing: 2) {
@@ -48,6 +71,18 @@ struct HomeView: View {
                 .buttonStyle(ChunkyButtonStyle(color: Palette.play))
             }
             .padding(24)
+        }
+        .sheet(item: $sheet) { sheet in
+            switch sheet {
+            case .daily: DailyRewardView(progress: progress)
+            case .collection: CollectionView(progress: progress)
+            case .shop: ShopView(store: store, progress: progress)
+            case .settings: SettingsView(progress: progress, store: store)
+            }
+        }
+        .onAppear {
+            bounce = true
+            if progress.canClaimDaily { sheet = .daily }
         }
     }
 }

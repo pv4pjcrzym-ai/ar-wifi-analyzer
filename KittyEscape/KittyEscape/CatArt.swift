@@ -1,105 +1,149 @@
-import SpriteKit
 import UIKit
 
-/// Vector cat drawn facing up. The scene renders it once per color to a texture.
+/// Draws a cat facing up. Used as a SpriteKit texture on the board and as an
+/// image in the SwiftUI menus, so both always look the same.
 enum CatArt {
-    static func makeNode(color: UIColor, size s: CGFloat) -> SKNode {
-        let root = SKNode()
-        let outline = color.darker(0.3)
+    private static var cache: [String: UIImage] = [:]
+
+    static func image(for breed: CatBreed, asleep: Bool = false, size: CGFloat = 128) -> UIImage {
+        let key = "\(breed.id)-\(asleep)-\(Int(size))"
+        if let cached = cache[key] { return cached }
+        let renderer = UIGraphicsImageRenderer(size: CGSize(width: size, height: size))
+        let image = renderer.image { context in
+            draw(breed, asleep: asleep, size: size, in: context.cgContext)
+        }
+        cache[key] = image
+        return image
+    }
+
+    private static func draw(_ breed: CatBreed, asleep: Bool, size s: CGFloat, in ctx: CGContext) {
+        // Origin in the middle and y pointing up, like SpriteKit.
+        ctx.translateBy(x: s / 2, y: s / 2)
+        ctx.scaleBy(x: 1, y: -1)
+        ctx.setLineCap(.round)
+        ctx.setLineJoin(.round)
+
         let r = s * 0.33
+        let fill = breed.color.cgColor
+        let outline = breed.color.darker(0.3).cgColor
+        // On dark fur the dark outline vanishes, so the direction mark goes light.
+        let mark = breed.color.hsbBrightness < 0.5 ? UIColor.white.withAlphaComponent(0.85).cgColor : outline
 
-        // Invisible square keeps the rendered texture centered on the body.
-        let frame = SKShapeNode(rectOf: CGSize(width: s, height: s))
-        frame.fillColor = .clear
-        frame.strokeColor = .clear
-        frame.lineWidth = 0
-        root.addChild(frame)
-
-        let tailPath = CGMutablePath()
-        tailPath.move(to: CGPoint(x: 0, y: -r * 0.6))
-        tailPath.addQuadCurve(to: CGPoint(x: r * 0.85, y: -r * 1.3), control: CGPoint(x: r * 0.95, y: -r * 0.7))
-        let tail = SKShapeNode(path: tailPath)
-        tail.strokeColor = outline
-        tail.lineWidth = r * 0.3
-        tail.lineCap = .round
-        tail.zPosition = -0.2
-        root.addChild(tail)
+        let tail = CGMutablePath()
+        tail.move(to: CGPoint(x: 0, y: -r * 0.6))
+        tail.addQuadCurve(to: CGPoint(x: r * 0.85, y: -r * 1.3), control: CGPoint(x: r * 0.95, y: -r * 0.7))
+        stroke(tail, color: outline, width: r * 0.3, in: ctx)
 
         for side: CGFloat in [-1, 1] {
-            let earPath = CGMutablePath()
-            earPath.move(to: CGPoint(x: side * r * 0.25, y: r * 0.75))
-            earPath.addLine(to: CGPoint(x: side * r * 0.8, y: r * 1.28))
-            earPath.addLine(to: CGPoint(x: side * r * 0.95, y: r * 0.35))
-            earPath.closeSubpath()
-            let ear = SKShapeNode(path: earPath)
-            ear.fillColor = color
-            ear.strokeColor = outline
-            ear.lineWidth = s * 0.03
-            ear.lineJoin = .round
-            ear.zPosition = -0.1
-            root.addChild(ear)
+            let ear = CGMutablePath()
+            ear.move(to: CGPoint(x: side * r * 0.25, y: r * 0.75))
+            ear.addLine(to: CGPoint(x: side * r * 0.8, y: r * 1.28))
+            ear.addLine(to: CGPoint(x: side * r * 0.95, y: r * 0.35))
+            ear.closeSubpath()
+            fillAndStroke(ear, fill: fill, stroke: outline, width: s * 0.03, in: ctx)
+
+            let inner = CGMutablePath()
+            inner.move(to: CGPoint(x: side * r * 0.45, y: r * 0.8))
+            inner.addLine(to: CGPoint(x: side * r * 0.78, y: r * 1.1))
+            inner.addLine(to: CGPoint(x: side * r * 0.85, y: r * 0.6))
+            inner.closeSubpath()
+            ctx.addPath(inner)
+            ctx.setFillColor(Palette.heart.withAlphaComponent(0.6).cgColor)
+            ctx.fillPath()
         }
 
-        let body = SKShapeNode(circleOfRadius: r)
-        body.fillColor = color
-        body.strokeColor = outline
-        body.lineWidth = s * 0.035
-        root.addChild(body)
+        let bodyRect = CGRect(x: -r, y: -r, width: r * 2, height: r * 2)
+        ctx.setFillColor(fill)
+        ctx.fillEllipse(in: bodyRect)
+
+        ctx.saveGState()
+        ctx.addEllipse(in: bodyRect)
+        ctx.clip()
+        drawPattern(breed, radius: r, in: ctx)
+        ctx.restoreGState()
+
+        ctx.setStrokeColor(outline)
+        ctx.setLineWidth(s * 0.035)
+        ctx.strokeEllipse(in: bodyRect)
 
         for side: CGFloat in [-1, 1] {
-            let eye = SKShapeNode(circleOfRadius: r * 0.22)
-            eye.fillColor = .white
-            eye.strokeColor = outline
-            eye.lineWidth = s * 0.015
-            eye.position = CGPoint(x: side * r * 0.38, y: r * 0.22)
-            eye.zPosition = 0.1
-            root.addChild(eye)
-
-            // Pupils sit toward the top so the cat looks where it will run.
-            let pupil = SKShapeNode(circleOfRadius: r * 0.11)
-            pupil.fillColor = UIColor(white: 0.1, alpha: 1)
-            pupil.strokeColor = .clear
-            pupil.position = CGPoint(x: side * r * 0.38, y: r * 0.31)
-            pupil.zPosition = 0.2
-            root.addChild(pupil)
+            let center = CGPoint(x: side * r * 0.38, y: r * 0.22)
+            if asleep {
+                let lid = CGMutablePath()
+                lid.move(to: CGPoint(x: center.x - r * 0.17, y: center.y))
+                lid.addQuadCurve(to: CGPoint(x: center.x + r * 0.17, y: center.y),
+                                 control: CGPoint(x: center.x, y: center.y - r * 0.16))
+                stroke(lid, color: outline, width: s * 0.03, in: ctx)
+            } else {
+                let eye = CGRect(x: center.x - r * 0.22, y: center.y - r * 0.22, width: r * 0.44, height: r * 0.44)
+                ctx.setFillColor(UIColor.white.cgColor)
+                ctx.fillEllipse(in: eye)
+                ctx.setStrokeColor(outline)
+                ctx.setLineWidth(s * 0.015)
+                ctx.strokeEllipse(in: eye)
+                // Pupils sit toward the top so the cat looks where it will run.
+                let pupil = CGRect(x: center.x - r * 0.11, y: center.y - r * 0.02, width: r * 0.22, height: r * 0.22)
+                ctx.setFillColor(UIColor(white: 0.1, alpha: 1).cgColor)
+                ctx.fillEllipse(in: pupil)
+            }
         }
 
-        let nosePath = CGMutablePath()
-        nosePath.move(to: CGPoint(x: -r * 0.1, y: r * 0.02))
-        nosePath.addLine(to: CGPoint(x: r * 0.1, y: r * 0.02))
-        nosePath.addLine(to: CGPoint(x: 0, y: -r * 0.1))
-        nosePath.closeSubpath()
-        let nose = SKShapeNode(path: nosePath)
-        nose.fillColor = Palette.heart
-        nose.strokeColor = .clear
-        nose.zPosition = 0.1
-        root.addChild(nose)
+        let nose = CGMutablePath()
+        nose.move(to: CGPoint(x: -r * 0.1, y: r * 0.02))
+        nose.addLine(to: CGPoint(x: r * 0.1, y: r * 0.02))
+        nose.addLine(to: CGPoint(x: 0, y: -r * 0.1))
+        nose.closeSubpath()
+        ctx.addPath(nose)
+        ctx.setFillColor(Palette.heart.cgColor)
+        ctx.fillPath()
 
-        // Smile under the nose.
-        let mouthPath = CGMutablePath()
-        mouthPath.move(to: CGPoint(x: -r * 0.24, y: -r * 0.14))
-        mouthPath.addQuadCurve(to: CGPoint(x: 0, y: -r * 0.12), control: CGPoint(x: -r * 0.12, y: -r * 0.32))
-        mouthPath.addQuadCurve(to: CGPoint(x: r * 0.24, y: -r * 0.14), control: CGPoint(x: r * 0.12, y: -r * 0.32))
-        let mouth = SKShapeNode(path: mouthPath)
-        mouth.strokeColor = outline
-        mouth.lineWidth = s * 0.02
-        mouth.lineCap = .round
-        mouth.zPosition = 0.1
-        root.addChild(mouth)
+        let mouth = CGMutablePath()
+        mouth.move(to: CGPoint(x: -r * 0.24, y: -r * 0.14))
+        mouth.addQuadCurve(to: CGPoint(x: 0, y: -r * 0.12), control: CGPoint(x: -r * 0.12, y: -r * 0.32))
+        mouth.addQuadCurve(to: CGPoint(x: r * 0.24, y: -r * 0.14), control: CGPoint(x: r * 0.12, y: -r * 0.32))
+        stroke(mouth, color: outline, width: s * 0.02, in: ctx)
 
         // Chevron on the forehead makes the running direction unmistakable.
-        let chevronPath = CGMutablePath()
-        chevronPath.move(to: CGPoint(x: -r * 0.26, y: r * 0.6))
-        chevronPath.addLine(to: CGPoint(x: 0, y: r * 0.84))
-        chevronPath.addLine(to: CGPoint(x: r * 0.26, y: r * 0.6))
-        let chevron = SKShapeNode(path: chevronPath)
-        chevron.strokeColor = outline
-        chevron.lineWidth = r * 0.13
-        chevron.lineCap = .round
-        chevron.lineJoin = .round
-        chevron.zPosition = 0.1
-        root.addChild(chevron)
+        let chevron = CGMutablePath()
+        chevron.move(to: CGPoint(x: -r * 0.26, y: r * 0.6))
+        chevron.addLine(to: CGPoint(x: 0, y: r * 0.84))
+        chevron.addLine(to: CGPoint(x: r * 0.26, y: r * 0.6))
+        stroke(chevron, color: mark, width: r * 0.13, in: ctx)
+    }
 
-        return root
+    private static func drawPattern(_ breed: CatBreed, radius r: CGFloat, in ctx: CGContext) {
+        let color = breed.patternColor.cgColor
+        switch breed.pattern {
+        case .plain:
+            break
+        case .tabby:
+            for side: CGFloat in [-1, 1] {
+                for i in 0..<3 {
+                    let y = r * (0.1 - CGFloat(i) * 0.28)
+                    let stripe = CGMutablePath()
+                    stripe.move(to: CGPoint(x: side * r * 1.05, y: y))
+                    stripe.addLine(to: CGPoint(x: side * r * 0.68, y: y - r * 0.05))
+                    stroke(stripe, color: color, width: r * 0.12, in: ctx)
+                }
+            }
+        case .patch:
+            ctx.setFillColor(color)
+            ctx.fillEllipse(in: CGRect(x: r * 0.02, y: -r * 0.12, width: r * 1.0, height: r * 1.0))
+        }
+    }
+
+    private static func stroke(_ path: CGPath, color: CGColor, width: CGFloat, in ctx: CGContext) {
+        ctx.addPath(path)
+        ctx.setStrokeColor(color)
+        ctx.setLineWidth(width)
+        ctx.strokePath()
+    }
+
+    private static func fillAndStroke(_ path: CGPath, fill: CGColor, stroke: CGColor, width: CGFloat, in ctx: CGContext) {
+        ctx.addPath(path)
+        ctx.setFillColor(fill)
+        ctx.setStrokeColor(stroke)
+        ctx.setLineWidth(width)
+        ctx.drawPath(using: .fillStroke)
     }
 }
