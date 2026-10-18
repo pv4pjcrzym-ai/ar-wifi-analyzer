@@ -1,0 +1,47 @@
+name: Kitty Escape
+
+on:
+  push:
+    paths:
+      - "KittyEscape/**"
+      - ".github/workflows/kitty-escape.yml"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Show Xcode version
+        run: xcodebuild -version
+
+      - name: Level logic tests
+        run: |
+          swiftc -O \
+            KittyEscape/KittyEscape/Board.swift \
+            KittyEscape/KittyEscape/LevelGenerator.swift \
+            KittyEscape/LogicTests/main.swift \
+            -o logic-tests
+          ./logic-tests
+
+      - name: Build app for the simulator
+        run: |
+          set -o pipefail
+          xcodebuild build \
+            -project KittyEscape/KittyEscape.xcodeproj \
+            -target KittyEscape \
+            -sdk iphonesimulator \
+            -configuration Debug \
+            CODE_SIGNING_ALLOWED=NO \
+            | tee build.log | grep -E "error:|warning:|BUILD" || true
+          grep -q "BUILD SUCCEEDED" build.log
+
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-log
+          path: build.log
+          if-no-files-found: ignore
