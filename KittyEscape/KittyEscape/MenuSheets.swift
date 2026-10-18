@@ -26,10 +26,12 @@ struct DailyRewardView: View {
             }
 
             if progress.canClaimDaily {
-                Button("Claim \(PlayerProgress.dailyRewards[progress.nextDailyIndex]) 🪙") {
+                Button {
                     claimedReward = progress.claimDaily()
                     SoundManager.shared.play(.coin)
                     Haptics.success()
+                } label: {
+                    Text("Claim \(PlayerProgress.dailyRewards[progress.nextDailyIndex]) \(Image(uiImage: CoinArt.image()).renderingMode(.original))")
                 }
                 .font(.system(size: 22, weight: .heavy, design: .rounded))
                 .buttonStyle(ChunkyButtonStyle(color: Palette.play))
@@ -58,8 +60,17 @@ struct DailyRewardView: View {
         return VStack(spacing: 4) {
             Text("Day \(day + 1)")
                 .font(.system(size: 13, weight: .heavy, design: .rounded))
-            Text(dayState == .claimed ? "✅" : (day == PlayerProgress.dailyRewards.count - 1 ? "💰" : "🪙"))
-                .font(.system(size: 26))
+            Group {
+                if dayState == .claimed {
+                    Text("✅")
+                } else if day == PlayerProgress.dailyRewards.count - 1 {
+                    Text("💰")
+                } else {
+                    Image(uiImage: CoinArt.image(size: 28))
+                }
+            }
+            .font(.system(size: 26))
+            .frame(height: 32)
             Text("\(PlayerProgress.dailyRewards[day])")
                 .font(.system(size: 15, weight: .heavy, design: .rounded))
         }
@@ -201,8 +212,9 @@ private struct ShopRow: View {
 
     var body: some View {
         HStack(spacing: 14) {
-            Text(icon)
+            icon
                 .font(.system(size: 36))
+                .frame(width: 44)
             VStack(alignment: .leading, spacing: 2) {
                 Text(product.displayName)
                     .font(.system(size: 18, weight: .heavy, design: .rounded))
@@ -222,11 +234,12 @@ private struct ShopRow: View {
         .background(RoundedRectangle(cornerRadius: 20, style: .continuous).fill(Palette.card))
     }
 
-    private var icon: String {
+    @ViewBuilder
+    private var icon: some View {
         switch product.id {
-        case StoreProduct.removeAds: return "🚫"
-        case StoreProduct.coinsLarge: return "💰"
-        default: return "🪙"
+        case StoreProduct.removeAds: Text("🚫")
+        case StoreProduct.coinsLarge: Text("💰")
+        default: Image(uiImage: CoinArt.image(size: 40))
         }
     }
 }

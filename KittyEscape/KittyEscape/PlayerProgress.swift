@@ -67,7 +67,8 @@ final class PlayerProgress: ObservableObject {
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         level = max(1, defaults.integer(forKey: Keys.level))
-        coins = defaults.object(forKey: Keys.coins) as? Int ?? 100
+        // integer(forKey:) also reads launch-argument overrides, which arrive as strings.
+        coins = defaults.object(forKey: Keys.coins) == nil ? 100 : defaults.integer(forKey: Keys.coins)
         soundOn = defaults.object(forKey: Keys.sound) as? Bool ?? true
         musicOn = defaults.object(forKey: Keys.music) as? Bool ?? true
         hapticsOn = defaults.object(forKey: Keys.haptics) as? Bool ?? true

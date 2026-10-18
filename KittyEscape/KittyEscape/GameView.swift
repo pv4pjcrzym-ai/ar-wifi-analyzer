@@ -57,7 +57,9 @@ struct GameView: View {
                     Button("Watch ad  +1 ❤️") { session.reviveWithAd() }
                         .buttonStyle(ChunkyButtonStyle(color: Palette.heartColor))
                 }
-                Button("Continue  \(GameSession.reviveCost) 🪙") { _ = session.revive() }
+                Button { _ = session.revive() } label: {
+                    Text("Continue  \(GameSession.reviveCost) \(Image(uiImage: CoinArt.image()).renderingMode(.original))")
+                }
                     .buttonStyle(ChunkyButtonStyle(color: Palette.hintButton))
                     .disabled(progress.coins < GameSession.reviveCost)
                     .opacity(progress.coins < GameSession.reviveCost ? 0.5 : 1)
@@ -125,7 +127,7 @@ struct GameView: View {
             Button { _ = session.useHint() } label: {
                 HStack(spacing: 6) {
                     Image(systemName: "lightbulb.fill")
-                    Text("Hint  \(GameSession.hintCost) 🪙")
+                    Text("Hint  \(GameSession.hintCost) \(Image(uiImage: CoinArt.image()).renderingMode(.original))")
                 }
                 .font(.system(size: 18, weight: .heavy, design: .rounded))
                 .padding(.horizontal, 18)

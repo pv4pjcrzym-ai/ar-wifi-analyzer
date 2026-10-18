@@ -62,7 +62,7 @@ struct CoinPill: View {
 
     var body: some View {
         HStack(spacing: 6) {
-            Text("🪙")
+            Image(uiImage: CoinArt.image())
             Text("\(coins)")
                 .font(.system(size: 18, weight: .heavy, design: .rounded))
                 .monospacedDigit()

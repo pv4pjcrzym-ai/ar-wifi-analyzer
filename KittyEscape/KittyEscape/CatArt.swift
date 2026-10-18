@@ -147,3 +147,33 @@ enum CatArt {
         ctx.drawPath(using: .fillStroke)
     }
 }
+
+/// Gold coin with a paw print, used everywhere coins are shown.
+enum CoinArt {
+    private static var cache: [Int: UIImage] = [:]
+
+    static func image(size: CGFloat = 22) -> UIImage {
+        let key = Int(size)
+        if let cached = cache[key] { return cached }
+        let rect = CGRect(x: 0, y: 0, width: size, height: size)
+        let image = UIGraphicsImageRenderer(size: rect.size).image { context in
+            let ctx = context.cgContext
+            let gold = UIColor(red: 1.00, green: 0.80, blue: 0.20, alpha: 1)
+            ctx.setFillColor(gold.darker(0.25).cgColor)
+            ctx.fillEllipse(in: rect)
+            ctx.setFillColor(gold.cgColor)
+            ctx.fillEllipse(in: rect.insetBy(dx: size * 0.09, dy: size * 0.09))
+
+            // Paw print: one pad and four toes.
+            ctx.setFillColor(gold.darker(0.3).cgColor)
+            let s = size
+            ctx.fillEllipse(in: CGRect(x: s * 0.34, y: s * 0.48, width: s * 0.32, height: s * 0.26))
+            for (x, y) in [(0.24, 0.36), (0.38, 0.25), (0.54, 0.25), (0.68, 0.36)] {
+                ctx.fillEllipse(in: CGRect(x: s * CGFloat(x) - s * 0.04, y: s * CGFloat(y) - s * 0.04,
+                                           width: s * 0.16, height: s * 0.16))
+            }
+        }
+        cache[key] = image
+        return image
+    }
+}
