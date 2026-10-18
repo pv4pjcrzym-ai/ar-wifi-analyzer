@@ -82,7 +82,11 @@ struct HomeView: View {
         }
         .onAppear {
             bounce = true
-            if progress.canClaimDaily { sheet = .daily }
+            if Demo.isActive {
+                sheet = Demo.screen.flatMap(Sheet.init(rawValue:))
+            } else if progress.canClaimDaily {
+                sheet = .daily
+            }
         }
     }
 }

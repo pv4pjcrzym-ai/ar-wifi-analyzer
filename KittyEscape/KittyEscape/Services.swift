@@ -30,6 +30,15 @@ enum Analytics {
     }
 }
 
+/// Launch arguments for automated screenshots, e.g.
+/// `-demo.screen game -demo.autoTaps 6 -progress.level 12`.
+/// Arguments named after a saved key (like `progress.level`) override it.
+enum Demo {
+    static var screen: String? { UserDefaults.standard.string(forKey: "demo.screen") }
+    static var autoTaps: Int { UserDefaults.standard.integer(forKey: "demo.autoTaps") }
+    static var isActive: Bool { screen != nil }
+}
+
 enum AppInfo {
     // Replace before submitting: App Store review requires a working privacy policy.
     static let privacyPolicyURL = URL(string: "https://example.com/kittyescape/privacy")!

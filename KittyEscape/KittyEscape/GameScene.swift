@@ -50,8 +50,10 @@ final class GameScene: SKScene {
 
     override func didMove(to view: SKView) {
         if boardNode.parent == nil { addChild(boardNode) }
+        let isFirstPresentation = !isReady
         isReady = true
         rebuild(animated: true)
+        if isFirstPresentation && Demo.autoTaps > 0 { runDemoTaps(Demo.autoTaps) }
     }
 
     override func didChangeSize(_ oldSize: CGSize) {
@@ -221,7 +223,11 @@ final class GameScene: SKScene {
 
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard let touch = touches.first else { return }
-        switch session.tap(gridPoint(at: touch.location(in: self))) {
+        handleTap(at: gridPoint(at: touch.location(in: self)))
+    }
+
+    private func handleTap(at point: GridPoint) {
+        switch session.tap(point) {
         case .escaped(let cat):
             animateEscape(cat)
         case .blocked(let cat, let blocker):
@@ -231,6 +237,19 @@ final class GameScene: SKScene {
         case .empty:
             break
         }
+    }
+
+    /// Plays the first moves by itself, for screenshots and store videos.
+    private func runDemoTaps(_ count: Int) {
+        var actions: [SKAction] = [.wait(forDuration: 1.2)]
+        for _ in 0..<count {
+            actions.append(.run { [weak self] in
+                guard let self, let cat = self.session.board.removableCats.last else { return }
+                self.handleTap(at: cat.position)
+            })
+            actions.append(.wait(forDuration: 0.25))
+        }
+        run(.sequence(actions), withKey: "demo")
     }
 
     // MARK: - Juice

@@ -23,7 +23,7 @@ struct KittyEscapeApp: App {
 struct RootView: View {
     @ObservedObject var progress: PlayerProgress
     @ObservedObject var store: Store
-    @State private var isPlaying = false
+    @State private var isPlaying = Demo.screen == "game"
 
     var body: some View {
         ZStack {
