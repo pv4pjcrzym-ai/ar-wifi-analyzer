@@ -37,7 +37,8 @@ final class Store: ObservableObject {
 
     func loadProducts() async {
         do {
-            products = try await Product.products(for: StoreProduct.all).sorted { $0.price < $1.price }
+            let ids = StoreProduct.all.filter { $0 != StoreProduct.removeAds || Ads.shared.isIntegrated }
+            products = try await Product.products(for: ids).sorted { $0.price < $1.price }
         } catch {
             products = []
         }

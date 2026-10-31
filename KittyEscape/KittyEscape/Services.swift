@@ -9,6 +9,10 @@ final class Ads {
     private let firstInterstitialLevel = 5
     private let interstitialEvery = 3
 
+    /// Flip to true once an ad SDK is added. Until then the game shows no ads,
+    /// so the "Remove Ads" purchase is hidden from the shop.
+    var isIntegrated: Bool { false }
+
     var isRewardedReady: Bool { false }
 
     func showRewarded(completion: @escaping (Bool) -> Void) {
